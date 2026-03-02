@@ -80,13 +80,16 @@ namespace sprout::heap {
                 auto* obj = reinterpret_cast<objHeader*>(c.mem + i);
                 if (obj->flags == FLAG_MARKED) {
                     auto* newAddr = static_cast<objHeader*>(heapAlloc(h2, obj->size, obj->type));
-                    std::memcpy(newAddr, obj, obj->size);
+                    std::memcpy(newAddr, obj + 1, obj->size - sizeof(objHeader));
                     for (auto a : ptrHolder) {
                         if (decode::decodePointer(*a) == obj) {
+                            uint64_t encoded = decode::encodePointer(reinterpret_cast<uint64_t>(newAddr));
+                            *a = encoded;
                             std::memcpy(a, &newAddr, sizeof(uint64_t));
                         }
                     }
                 }
+                i += obj->size;
             }
             freeChunk( c);
         }
