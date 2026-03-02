@@ -23,6 +23,7 @@ namespace sprout::vm {
         int8_t jmpFlag;
 
         bool running;
+        bool heapA;
         std::vector<functionInfo> functionTable;
     };
 

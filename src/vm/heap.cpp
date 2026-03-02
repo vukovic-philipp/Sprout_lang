@@ -1,6 +1,9 @@
 #include "heap.h"
 #include <cstdlib>
 
+#include "decode.h"
+#include "vm.h"
+
 namespace sprout::heap {
 
     void allocNewChunk(heap& Heap) {
@@ -15,25 +18,82 @@ namespace sprout::heap {
             Heap.chunks.push_back(c);
         }
 
-    void* heapAlloc (heap& h, size_t size) {
-        size = align(size);
-        if (h.chunks.empty() || h.chunks.back().used + size > CHUNK_SIZE) {
+    void* heapAlloc (heap& h, size_t size, uint16_t type) {
+        size_t total = align(sizeof(objHeader) + size);
+        if (h.chunks.empty() || h.chunks.back().used + total > CHUNK_SIZE) {
             allocNewChunk(h);
         }
-
         chunk& c = h.chunks.back();
         void* ptr = c.mem + c.used;
-        c.used += size;
 
-        h.totalAllocated += size;
+        objHeader* hdr = reinterpret_cast<objHeader*>(ptr);
+        hdr->size = total;
+        hdr->type = type;
+        hdr->flags = 0;
 
-        return ptr;
+        c.used += total;
+        h.totalAllocated += total;
+
+        return hdr + 1;
     }
 
     void freeHeap(heap& h) {
         for (auto& c : h.chunks) {
             std::free(c.mem);
         }
+        h.chunks.erase(h.chunks.begin(), h.chunks.end());
     }
+
+    void freeChunk(chunk& c) {
+        std::free(c.mem);
+    }
+
+    std::vector<objHeader*> getAllObjects(heap& h) {
+        std::vector<objHeader*> objects;
+        for (auto& c : h.chunks) {
+            uint32_t i = 0;
+            while (i < c.used) {
+                auto ptr = reinterpret_cast<objHeader*>(c.mem + i);
+                objects.push_back(ptr);
+                i += ptr->size;
+            }
+        }
+        return objects;
+    }
+
+
+    std::vector<uint64_t*> markObjects(vm::VM& vm) {
+        std::vector<uint64_t*> ptrHolder;
+        for (auto& r : vm.reg) {
+            markObject(r);
+            ptrHolder.push_back(&r);
+        }
+        for (uint64_t i = 0; i < vm.sp; i++) {
+            markObject(vm.stack[i]);
+            ptrHolder.push_back(&vm.stack[i]);
+        }
+        return ptrHolder;
+    }
+
+    void moveObjects(heap& h1, heap& h2, std::vector<uint64_t*> ptrHolder) {
+        for (auto& c : h1.chunks) {
+            uint32_t i = 0;
+            while (i < c.used) {
+                auto* obj = reinterpret_cast<objHeader*>(c.mem + i);
+                if (obj->flags == FLAG_MARKED) {
+                    auto* newAddr = static_cast<objHeader*>(heapAlloc(h2, obj->size, obj->type));
+                    std::memcpy(newAddr, obj, obj->size);
+                    for (auto a : ptrHolder) {
+                        if (decode::decodePointer(*a) == obj) {
+                            std::memcpy(a, &newAddr, sizeof(uint64_t));
+                        }
+                    }
+                }
+            }
+            freeChunk( c);
+        }
+        freeHeap(h1);
+    }
+
 
 }

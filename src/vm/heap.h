@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <vector>
 
+#include "decode.h"
+
 namespace sprout::heap {
     constexpr size_t CHUNK_SIZE = 4 * 1024 * 1024;
     constexpr size_t ALIGN = 8;
@@ -22,6 +24,11 @@ namespace sprout::heap {
         OBJ_ARRAY,
     };
 
+    enum flags : uint16_t {
+        FLAG_UNMARKED,
+        FLAG_MARKED
+    };
+
     struct chunk {
         uint8_t* mem;
         size_t used;
@@ -31,8 +38,16 @@ namespace sprout::heap {
     struct heap {
         std::vector<chunk> chunks;
         size_t totalAllocated;
-        size_t nextGC;
+        size_t max;
     };
+
+    inline void markObject(uint64_t& r) {
+        if (decode::isPointer(r)) {
+            auto* hdr = static_cast<objHeader*>(decode::decodePointer(r)) - 1; // step back to header
+            hdr->flags |= FLAG_MARKED;
+        }
+    }
+
 
 }
 #endif
