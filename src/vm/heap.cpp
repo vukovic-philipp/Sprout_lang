@@ -18,7 +18,11 @@ namespace sprout::heap {
             Heap.chunks.push_back(c);
         }
 
-    void* heapAlloc (HEAP& h, size_t size, uint16_t type) {
+    void* heapAlloc (HEAP& h, size_t size, uint16_t type, vm::VM vm) {
+        HEAP& active = vm.heapAUsed ? vm.heapA : vm.heapB;
+        if (active.totalAllocated > active.max * 0.7) {
+            compactingGarbageCollect(vm);
+        }
         size_t total = align(sizeof(objHeader) + size);
         if (h.chunks.empty() || h.chunks.back().used + total > CHUNK_SIZE) {
             allocNewChunk(h);
@@ -82,10 +86,9 @@ namespace sprout::heap {
                     auto* newAddr = static_cast<objHeader*>(heapAlloc(h2, obj->size, obj->type)); //get a new * address for obj from heapAlloc
                     std::memcpy(newAddr, obj + 1, obj->size - sizeof(objHeader)); //copy data from the old obj to the new obj
                     for (auto a : ptrHolder) {
-                        if (decode::decodePointer(*a) == obj) {
+                        if (decode::decodePointer(*a) == static_cast<void*>(obj + 1)) {
                             uint64_t encoded = decode::encodePointer(reinterpret_cast<uint64_t>(newAddr));
-                            *a = encoded;
-                            std::memcpy(a, &newAddr, sizeof(uint64_t)); //Change (in reg or stack) saved pointer from old to new
+                            *a = encoded; //Change (in reg or stack) saved pointer from old to new
                         }
                     }
                 }
