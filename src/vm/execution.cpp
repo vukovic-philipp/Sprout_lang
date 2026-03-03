@@ -4,6 +4,7 @@
 
 #include "vm.h"
 #include "decode.h"
+#include "heap.h"
 
 namespace sprout::execution {
     void execute(vm::VM& vm, const decode::decodedInstr& d) {
@@ -62,8 +63,8 @@ namespace sprout::execution {
             case OP_END:
                 end( vm.reg[d.ra]);
                 vm.running = false;
-                heap::freeHeap(vm.heapA);
-                heap::freeHeap(vm.heapB);
+                heap::freeHeap(*vm.heapA);
+                heap::freeHeap(*vm.heapB);
                 break;
             case OP_DEBUG_RETURN:
                 end(vm.reg[d.ra]);

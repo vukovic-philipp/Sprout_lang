@@ -3,6 +3,7 @@
 #include "bytecode.h"
 #include "decode.h"
 #include "execution.h"
+#include "heap.h"
 #define HEAPSIZE (512*1024*1024)
 
 namespace sprout::vm {
@@ -12,8 +13,12 @@ namespace sprout::vm {
         vm.functionTable = bytecode::loadFunctionTable(vm.header, vm);
         vm.ip = vm.header.codeOffset;
         vm.heapAUsed = true;
-        vm.heapA.max = HEAPSIZE;
-        vm.heapB.max = HEAPSIZE;
+        vm.heapA = new heap::HEAP();
+        vm.heapB = new heap::HEAP();
+        vm.heapA->max = HEAPSIZE;
+        vm.heapB->max = HEAPSIZE;
+        vm.heapA->totalAllocated = 0;
+        vm.heapB->totalAllocated = 0;
         // Debug print
         /*std::cerr << "codeOffset = " << vm.header.codeOffset
           << ", sizeof(BCHeader) = " << sizeof(bytecode::BCHeader) 
@@ -30,5 +35,7 @@ namespace sprout::vm {
             decode::decodedInstr d = decode::decode(instruction);
             execution::execute(vm, d);
         }
+        delete vm.heapA;
+        delete vm.heapB;
     }
 }

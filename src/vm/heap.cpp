@@ -6,6 +6,15 @@
 
 namespace sprout::heap {
 
+    inline bool markObject(uint64_t& r) {
+        if (decode::isPointer(r)) {
+            auto* hdr = static_cast<objHeader*>(decode::decodePointer(r)) - 1; // step back to header
+            hdr->flags |= FLAG_MARKED;
+            return true;
+        }
+        return false;
+    }
+
     void allocNewChunk(HEAP& Heap) {
             CHUNK c {};
             c.mem = static_cast<uint8_t *>(std::malloc(CHUNK_SIZE));
@@ -18,28 +27,7 @@ namespace sprout::heap {
             Heap.chunks.push_back(c);
         }
 
-        void* gcCollectedHeapAlloc (HEAP& h, size_t size, uint16_t type, vm::VM& vm) {
-        HEAP& active = vm.heapAUsed ? vm.heapA : vm.heapB;
-        if (active.totalAllocated > active.max * 0.7) {
-            compactingGarbageCollect(vm);
-        }
-        size_t total = align(sizeof(objHeader) + size);
-        if (h.chunks.empty() || h.chunks.back().used + total > CHUNK_SIZE) {
-            allocNewChunk(h);
-        }
-        CHUNK& c = h.chunks.back();
-        void* ptr = c.mem + c.used;
 
-        objHeader* hdr = reinterpret_cast<objHeader*>(ptr);
-        hdr->size = total;
-        hdr->type = type;
-        hdr->flags = 0;
-
-        c.used += total;
-        h.totalAllocated += total;
-
-        return hdr + 1;
-        }
 
     void* heapAlloc (HEAP& h, size_t size, uint16_t type) {
         size_t total = align(sizeof(objHeader) + size);
@@ -60,6 +48,15 @@ namespace sprout::heap {
         return hdr + 1;
     }
 
+    void* gcCollectedHeapAlloc (size_t size, uint16_t type, vm::VM& vm) {
+        HEAP& active = vm.heapAUsed ? *vm.heapA : *vm.heapB;
+        if (active.totalAllocated > active.max * 0.7) {
+            compactingGarbageCollect(vm);
+            active = vm.heapAUsed ? *vm.heapA : *vm.heapB; //Reevaluate because active is switched in GC
+        }
+        return heapAlloc(active, size, type);
+        }
+
     void freeHeap(HEAP& h) {
         for (auto& c : h.chunks) {
             std::free(c.mem);
@@ -70,6 +67,7 @@ namespace sprout::heap {
 
     void freeChunk(CHUNK& c) {
         std::free(c.mem);
+        c.mem = nullptr;
     }
 
     std::vector<objHeader*> getAllObjects(HEAP& h) {
@@ -123,10 +121,10 @@ namespace sprout::heap {
             std::vector<uint64_t*> ptrHolder = markObjects(vm); //Get Stack slots or regs with heap pointers
 
             if (vm.heapAUsed) {
-                moveObjects(vm.heapA, vm.heapB, ptrHolder); //Compact heapA into heapB
+                moveObjects(*vm.heapA, *vm.heapB, ptrHolder); //Compact heapA into heapB
                 vm.heapAUsed = false;
             } else {
-                moveObjects(vm.heapB, vm.heapA, ptrHolder); //Compact heapB into heapA
+                moveObjects(*vm.heapB, *vm.heapA, ptrHolder); //Compact heapB into heapA
                 vm.heapAUsed = true;
             }
     }

@@ -95,16 +95,8 @@ namespace sprout::decode {
         return decInstr;
     }
 
-    inline void push(vm::VM& vm, uint64_t a) {
-        if (vm.sp >= 4096) {
-            throw std::runtime_error("!!!STACK OVERFLOW!!!");;
-        }
-        vm.stack[vm.sp++] = a;
-    }
-
-    inline uint64_t pop(vm::VM& vm) {
-        return vm.stack[--vm.sp];
-    }
+    void push(vm::VM& vm, uint64_t a);
+    uint64_t pop(vm::VM& vm);
 
 }
 #endif //SPROUT_LANG_DECODE_H

@@ -4,7 +4,10 @@
 #include <stdexcept>
 #include <vector>
 #include "bytecode.h"
-#include "heap.h"
+
+namespace sprout::heap {
+    struct HEAP;
+}
 
 namespace sprout::vm {
     struct functionInfo {
@@ -22,8 +25,8 @@ namespace sprout::vm {
         uint64_t sp;
         uint64_t fp;
 
-        heap::HEAP heapA;
-        heap::HEAP heapB;
+        heap::HEAP* heapA;
+        heap::HEAP* heapB;
 
         int8_t jmpFlag;
 
