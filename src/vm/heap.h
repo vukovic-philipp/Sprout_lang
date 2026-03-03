@@ -29,14 +29,14 @@ namespace sprout::heap {
         FLAG_MARKED
     };
 
-    struct chunk {
+    struct CHUNK {
         uint8_t* mem;
         size_t used;
         size_t capacity;
     };
 
-    struct heap {
-        std::vector<chunk> chunks;
+    struct HEAP {
+        std::vector<CHUNK> chunks;
         size_t totalAllocated;
         size_t max;
     };
@@ -50,6 +50,9 @@ namespace sprout::heap {
         return false;
     }
 
+    void compactingGarbageCollect(vm::VM& vm);
+    void freeHeap(HEAP& h);
+    void* heapAlloc (HEAP& h, size_t size, uint16_t type);
 
 }
 #endif

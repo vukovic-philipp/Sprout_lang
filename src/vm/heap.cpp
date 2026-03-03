@@ -6,8 +6,8 @@
 
 namespace sprout::heap {
 
-    void allocNewChunk(heap& Heap) {
-            chunk c {};
+    void allocNewChunk(HEAP& Heap) {
+            CHUNK c {};
             c.mem = static_cast<uint8_t *>(std::malloc(CHUNK_SIZE));
             if (!c.mem) {
                 throw std::bad_alloc{};
@@ -18,12 +18,12 @@ namespace sprout::heap {
             Heap.chunks.push_back(c);
         }
 
-    void* heapAlloc (heap& h, size_t size, uint16_t type) {
+    void* heapAlloc (HEAP& h, size_t size, uint16_t type) {
         size_t total = align(sizeof(objHeader) + size);
         if (h.chunks.empty() || h.chunks.back().used + total > CHUNK_SIZE) {
             allocNewChunk(h);
         }
-        chunk& c = h.chunks.back();
+        CHUNK& c = h.chunks.back();
         void* ptr = c.mem + c.used;
 
         objHeader* hdr = reinterpret_cast<objHeader*>(ptr);
@@ -37,18 +37,18 @@ namespace sprout::heap {
         return hdr + 1;
     }
 
-    void freeHeap(heap& h) {
+    void freeHeap(HEAP& h) {
         for (auto& c : h.chunks) {
             std::free(c.mem);
         }
         h.chunks.erase(h.chunks.begin(), h.chunks.end());
     }
 
-    void freeChunk(chunk& c) {
+    void freeChunk(CHUNK& c) {
         std::free(c.mem);
     }
 
-    std::vector<objHeader*> getAllObjects(heap& h) {
+    std::vector<objHeader*> getAllObjects(HEAP& h) {
         std::vector<objHeader*> objects;
         for (auto& c : h.chunks) {
             uint32_t i = 0;
@@ -73,19 +73,19 @@ namespace sprout::heap {
         return ptrHolder;
     }
 
-    void moveObjects(heap& h1, heap& h2, std::vector<uint64_t*> ptrHolder) {
+    void moveObjects(HEAP& h1, HEAP& h2, std::vector<uint64_t*> ptrHolder) {
         for (auto& c : h1.chunks) {
             uint32_t i = 0;
             while (i < c.used) {
                 auto* obj = reinterpret_cast<objHeader*>(c.mem + i);
                 if (obj->flags == FLAG_MARKED) {
-                    auto* newAddr = static_cast<objHeader*>(heapAlloc(h2, obj->size, obj->type));
-                    std::memcpy(newAddr, obj + 1, obj->size - sizeof(objHeader));
+                    auto* newAddr = static_cast<objHeader*>(heapAlloc(h2, obj->size, obj->type)); //get a new * address for obj from heapAlloc
+                    std::memcpy(newAddr, obj + 1, obj->size - sizeof(objHeader)); //copy data from the old obj to the new obj
                     for (auto a : ptrHolder) {
                         if (decode::decodePointer(*a) == obj) {
                             uint64_t encoded = decode::encodePointer(reinterpret_cast<uint64_t>(newAddr));
                             *a = encoded;
-                            std::memcpy(a, &newAddr, sizeof(uint64_t));
+                            std::memcpy(a, &newAddr, sizeof(uint64_t)); //Change (in reg or stack) saved pointer from old to new
                         }
                     }
                 }
@@ -93,7 +93,19 @@ namespace sprout::heap {
             }
             freeChunk( c);
         }
-        freeHeap(h1);
+        h1.chunks.erase(h1.chunks.begin(), h1.chunks.end());
+    }
+
+    void compactingGarbageCollect(vm::VM& vm) {
+            std::vector<uint64_t*> ptrHolder = markObjects(vm); //Get Stack slots or regs with heap pointers
+
+            if (vm.heapAUsed) {
+                moveObjects(vm.heapA, vm.heapB, ptrHolder); //Compact heapA into heapB
+                vm.heapAUsed = false;
+            } else {
+                moveObjects(vm.heapB, vm.heapA, ptrHolder); //Compact heapB into heapA
+                vm.heapAUsed = true;
+            }
     }
 
 

@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <vector>
 #include "bytecode.h"
+#include "heap.h"
+
 namespace sprout::vm {
     struct functionInfo {
         uint32_t entryIP;
@@ -20,10 +22,13 @@ namespace sprout::vm {
         uint64_t sp;
         uint64_t fp;
 
+        heap::HEAP heapA;
+        heap::HEAP heapB;
+
         int8_t jmpFlag;
 
         bool running;
-        bool heapA;
+        bool heapAUsed;
         std::vector<functionInfo> functionTable;
     };
 
