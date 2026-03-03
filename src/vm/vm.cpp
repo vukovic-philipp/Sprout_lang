@@ -10,6 +10,7 @@ namespace sprout::vm {
         vm.header = bytecode::loadHeader(vm.bytecode);
         vm.functionTable = bytecode::loadFunctionTable(vm.header, vm);
         vm.ip = vm.header.codeOffset;
+        vm.heapAUsed = true;
         // Debug print
         /*std::cerr << "codeOffset = " << vm.header.codeOffset
           << ", sizeof(BCHeader) = " << sizeof(bytecode::BCHeader) 
@@ -25,6 +26,7 @@ namespace sprout::vm {
             //std::cerr << std::format("instr=0x{:08X}", instruction) << std::endl; //DEBUG FUNC
             decode::decodedInstr d = decode::decode(instruction);
             execution::execute(vm, d);
+            heap::compactingGarbageCollect(vm); //Implement checking that GC only runs when Heap more than 70% full
         }
     }
 }
