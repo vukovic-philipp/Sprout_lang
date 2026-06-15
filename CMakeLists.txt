@@ -25,6 +25,8 @@ add_executable(sprout_compiler
         src/compiler/parser.h
         src/compiler/memManager.cpp
         src/compiler/memManager.h
+        src/compiler/codegen.cpp
+        src/compiler/codegen.hpp
 )
 
 target_link_libraries(sprout_compiler PRIVATE sprout_shared)
