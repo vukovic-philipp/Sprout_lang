@@ -12,7 +12,7 @@ int main(int argc, char* argv[]) {
         if (!CodeStr.empty()) CodeStr += ' ';
         CodeStr += argv[i];
     }
-    CodeStr = "";
+    CodeStr = "var x = 12 - 4 x = x + 5";
 
     std::vector<sprout::lexer::Token> tokens = tokenize(CodeStr);
     sprout::memManager::Memory mem {};

@@ -44,7 +44,11 @@ namespace sprout::codegen {
                 break;
             }
             case parser::NODE_VAR_ASSIGN: {
-
+                auto* n = static_cast<parser::VarAssignNode*>(node);
+                uint8_t reg = b.registerTable[n->identifier];
+                uint8_t temp = compileExpr(b, n->expression);
+                emitInstr(b, OP_MOV, reg, temp, 0);
+                deallocGP(b, temp);
             }
         }
     }
