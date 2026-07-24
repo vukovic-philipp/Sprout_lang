@@ -69,6 +69,6 @@ namespace sprout::lexer {
         return Token{type, text};
     }
 
+std::vector<sprout::lexer::Token> tokenize(std::string code);
 
 }
-std::vector<sprout::lexer::Token> tokenize(std::string code);

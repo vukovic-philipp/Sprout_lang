@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
     }
     CodeStr = "var x = 12 - 4 x = x + 5";
 
-    std::vector<sprout::lexer::Token> tokens = tokenize(CodeStr);
+    std::vector<sprout::lexer::Token> tokens = sprout::lexer::tokenize(CodeStr);
     sprout::memManager::Memory mem {};
     sprout::parser::ASTNode* tree = sprout::parser::parseProgram(tokens, mem);
     sprout::parser::printAST(tree, 1);

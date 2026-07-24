@@ -120,7 +120,7 @@ namespace sprout::lexer {
         return makeToken(UNKNOWN, std::string(1, c));
     }
 
-    std::vector<Token> tokenize(Source& s) {
+    std::vector<Token> tokenizeFromSource(Source& s) {
         std::vector<Token> tokens;
         while (true) {
             Token t = nextToken(s);
@@ -129,14 +129,14 @@ namespace sprout::lexer {
         }
         return tokens;
     }
-}
+    std::vector<Token> tokenize(std::string code) {
+        Source s = {code};
 
-std::vector<sprout::lexer::Token> tokenize(std::string code) {
-        sprout::lexer::Source s = {code};
-
-        std::vector<sprout::lexer::Token> tokens = sprout::lexer::tokenize(s);
-        for (auto t : tokens) {
+        std::vector<Token> tokens = tokenizeFromSource(s);
+        /*for (auto t : tokens) {
             std::cout << "Token Type: " << t.type << " Token Value: " << t.content << "\n";
-        }
+        }*/
         return tokens;
 }
+}
+
